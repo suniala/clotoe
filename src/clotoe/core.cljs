@@ -1,38 +1,36 @@
 (ns clotoe.core
   (:require [reagent.core :as r]))
 
-(def grid-data (r/atom [[false false] [false true]]))
+(def grid-data (r/atom (array-map :c00 false :c10 false
+                                  :c01 false :c11 true)))
 
-(defn set-pebble [col row]
-  (fn [[[c00 c10] [c01 c11]]]
-    ; TODO: set pebble
-    [[c00 c10] [c01 c11]]))
+(defn set-pebble [cell-data]
+  (fn [data]
+    (assoc data cell-data true)))
 
-(defn cell [data col row]
+(defn cell [data cell-data]
   [:div {:class (str "cell")
-         :on-click #(swap! @data (set-pebble col row))}
-   [:span (if ((@data row) col) "x" "o")]])
+         :on-click #(swap! data (set-pebble cell-data))}
+   [:span (if (cell-data @data) "x" "o")]])
 
-;(defn cell [data col row]
-;  [:div {:class "cell"}
-;   [:input {:type "checkbox" :checked ((@data row) col)}]])
-;
 (defn grid [data]
   [:div {:class "grid"}
-   [cell data 0 0]
-   [cell data 1 0]
-   [cell data 0 1]
-   [cell data 1 1]])
+   [cell data :c00]
+   [cell data :c10]
+   [cell data :c01]
+   [cell data :c11]])
 
 ; c00 c10  ->  c01 c00
 ; c01 c11      c11 c10
-(defn rot-right [[[c00 c10] [c01 c11]]]
-  [[c01 c00] [c11 c10]])
+(defn rot-right [data]
+  (array-map :c00 (:c01 data) :c10 (:c00 data)
+             :c01 (:c11 data) :c11 (:c10 data)))
 
 ; c00 c10  ->  c10 c11
 ; c01 c11      c00 c01
-(defn rot-left [[[c00 c10] [c01 c11]]]
-  [[c10 c11] [c00 c01]])
+(defn rot-left [data]
+  (array-map :c00 (:c10 data) :c10 (:c11 data)
+             :c01 (:c00 data) :c11 (:c01 data)))
 
 (defn rotate [label rot]
   [:input {:type     "button" :value label
