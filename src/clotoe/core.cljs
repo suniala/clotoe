@@ -1,34 +1,48 @@
 (ns clotoe.core
   (:require [reagent.core :as r]))
 
-(defonce timer (r/atom (js/Date.)))
+(def grid-data (r/atom [[false false] [false true]]))
 
-(defonce time-color (r/atom "#f34"))
+(defn set-pebble [col row]
+  (fn [[[c00 c10] [c01 c11]]]
+    ; TODO: set pebble
+    [[c00 c10] [c01 c11]]))
 
-(defonce time-updater (js/setInterval
-                       #(reset! timer (js/Date.)) 1000))
+(defn cell [data col row]
+  [:div {:class (str "cell")
+         :on-click #(swap! @data (set-pebble col row))}
+   [:span (if ((@data row) col) "x" "o")]])
 
-(defn greeting [message]
-  [:h1 message])
+;(defn cell [data col row]
+;  [:div {:class "cell"}
+;   [:input {:type "checkbox" :checked ((@data row) col)}]])
+;
+(defn grid [data]
+  [:div {:class "grid"}
+   [cell data 0 0]
+   [cell data 1 0]
+   [cell data 0 1]
+   [cell data 1 1]])
 
-(defn clock []
-  (let [time-str (-> @timer .toTimeString (clojure.string/split " ") first)]
-    [:div.example-clock
-     {:style {:color @time-color}}
-     time-str]))
+; c00 c10  ->  c01 c00
+; c01 c11      c11 c10
+(defn rot-right [[[c00 c10] [c01 c11]]]
+  [[c01 c00] [c11 c10]])
 
-(defn color-input []
-  [:div.color-input
-   "Time color: "
-   [:input {:type "text"
-            :value @time-color
-            :on-change #(reset! time-color (-> % .-target .-value))}]])
+; c00 c10  ->  c10 c11
+; c01 c11      c00 c01
+(defn rot-left [[[c00 c10] [c01 c11]]]
+  [[c10 c11] [c00 c01]])
+
+(defn rotate [label rot]
+  [:input {:type     "button" :value label
+           :on-click #(swap! grid-data rot)}])
 
 (defn simple-example []
   [:div
-   [greeting "Hello world, it is now"]
-   [clock]
-   [color-input]])
+   [grid grid-data]
+   [rotate "<" rot-left]
+   [rotate ">" rot-right]])
 
 (defn ^:export run []
   (r/render [simple-example]
