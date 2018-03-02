@@ -2,43 +2,10 @@
   (:require [reagent.core :as r]
             [reagent.debug :as d]))
 
-(def turn (r/atom {:color :white
-                   :step  :place}))
-
-(def grid-data (r/atom (array-map :c00 :blank :c10 :blank
-                                  :c01 :blank :c11 :blank)))
-
-(defn data-debug []
-  [:div
-   (d/prn @turn)
-   (d/prn @grid-data)])
-
-(defn next-step [current]
-  (if (= :place (:step current))
-    (assoc current :step :rotate)
-    (assoc current :color (if (= :white (:color current)) :black :white)
-                   :step :place)))
-
-(defn set-pebble [cell-data]
-  (fn [data]
-    (let [curr-turn @turn]
-      (assoc data cell-data (:color curr-turn)))))
-
-(defn cell [data cell-data]
-  [:div {:class    (str "cell")
-         :on-click #((swap! data (set-pebble cell-data))
-                      (swap! turn next-step))}
-   [:span (let [pebble (cell-data @data)]
-            (cond (= :white pebble) "w"
-                  (= :black pebble) "b"
-                  :else "-"))]])
-
-(defn grid [data]
-  [:div {:class "grid"}
-   [cell data :c00]
-   [cell data :c10]
-   [cell data :c01]
-   [cell data :c11]])
+(def game-state (r/atom {:player :white
+                         :step   :place
+                         :board  {:c00 :blank :c10 :blank
+                                  :c01 :blank :c11 :blank}}))
 
 ; c00 c10  ->  c01 c00
 ; c01 c11      c11 c10
@@ -52,22 +19,60 @@
   (array-map :c00 (:c10 data) :c10 (:c11 data)
              :c01 (:c00 data) :c11 (:c01 data)))
 
-(defn rotate [label rot]
-  [:input {:type     "button" :value label
-           :on-click #((swap! grid-data rot)
-                        (swap! turn next-step))}])
+(defn trans-place-pebble [cell-accessor]
+  (fn [game-state]
+    (assoc game-state :step :rotate
+                      :board (assoc (:board game-state) cell-accessor (:player game-state)))))
 
-(defn turn-label []
+(defn trans-rotate [direction]
+  (fn [game-state]
+    (let [next-player (if (= :white (:player game-state)) :black :white)
+          next-board (if (= :left direction)
+                       (rot-left (:board game-state))
+                       (rot-right (:board game-state)))]
+      (assoc game-state :player next-player
+                        :step :place
+                        :board next-board))))
+
+(defn game-place-pebble [cell-accessor]
+  (swap! game-state (trans-place-pebble cell-accessor)))
+
+(defn game-rotate [direction]
+  (swap! game-state (trans-rotate direction)))
+
+(defn data-debug []
   [:div
-   "Turn: "
-   @turn])
+   (d/prn @game-state)])
+
+(defn cell [board cell-accessor]
+  [:div {:class    (str "cell")
+         :on-click #(game-place-pebble cell-accessor)}
+   [:span (let [pebble (cell-accessor board)]
+            (cond (= :white pebble) "w"
+                  (= :black pebble) "b"
+                  :else "-"))]])
+
+(defn grid [board]
+  [:div {:class "grid"}
+   [cell board :c00]
+   [cell board :c10]
+   [cell board :c01]
+   [cell board :c11]])
+
+(defn rotate [label direction]
+  [:input {:type     "button" :value label
+           :on-click #(game-rotate direction)}])
+
+(defn turn-label [player step]
+  [:div
+   "Turn: " player " " step])
 
 (defn simple-example []
   [:div
-   [turn-label]
-   [grid grid-data]
-   [rotate "<" rot-left]
-   [rotate ">" rot-right]
+   [turn-label (:player @game-state) (:step @game-state)]
+   [grid (:board @game-state)]
+   [rotate "<" :left]
+   [rotate ">" :right]
    [data-debug]])
 
 (defn ^:export run []
