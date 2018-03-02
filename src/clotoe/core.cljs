@@ -2,10 +2,16 @@
   (:require [reagent.core :as r]
             [reagent.debug :as d]))
 
+(defn init-quadrant []
+  {:c00 :blank :c10 :blank
+   :c01 :blank :c11 :blank})
+
 (def game-state (r/atom {:player :white
                          :step   :place
-                         :board  {:c00 :blank :c10 :blank
-                                  :c01 :blank :c11 :blank}}))
+                         :board  {:q00 (init-quadrant)
+                                  :q10 (init-quadrant)
+                                  :q01 (init-quadrant)
+                                  :q11 (init-quadrant)}}))
 
 ; c00 c10  ->  c01 c00
 ; c01 c11      c11 c10
@@ -19,54 +25,68 @@
   (array-map :c00 (:c10 data) :c10 (:c11 data)
              :c01 (:c00 data) :c11 (:c01 data)))
 
-(defn trans-place-pebble [cell-accessor]
+(defn trans-place-pebble [quadrant-accessor cell-accessor]
   (fn [game-state]
-    (assoc game-state :step :rotate
-                      :board (assoc (:board game-state) cell-accessor (:player game-state)))))
+    (let [quadrant (quadrant-accessor (:board game-state))
+          next-quadrant (assoc quadrant cell-accessor (:player game-state))
+          next-board (assoc (:board game-state) quadrant-accessor next-quadrant)]
+      (assoc game-state :step :rotate
+                        :board next-board))))
 
-(defn trans-rotate [direction]
+(defn trans-rotate [quadrant-accessor direction]
   (fn [game-state]
     (let [next-player (if (= :white (:player game-state)) :black :white)
-          next-board (if (= :left direction)
-                       (rot-left (:board game-state))
-                       (rot-right (:board game-state)))]
+          quadrant (quadrant-accessor (:board game-state))
+          next-quadrant (if (= :left direction)
+                       (rot-left quadrant)
+                       (rot-right quadrant))
+          next-board (assoc (:board game-state) quadrant-accessor next-quadrant)]
       (assoc game-state :player next-player
                         :step :place
                         :board next-board))))
 
-(defn game-place-pebble [cell-accessor]
-  (swap! game-state (trans-place-pebble cell-accessor)))
+(defn game-place-pebble [quadrant-accessor cell-accessor]
+  (swap! game-state (trans-place-pebble quadrant-accessor cell-accessor)))
 
-(defn game-rotate [direction]
-  (swap! game-state (trans-rotate direction)))
+(defn game-rotate [quadrant-accessor direction]
+  (swap! game-state (trans-rotate quadrant-accessor direction)))
 
 (defn data-debug []
   [:div
    (d/prn @game-state)])
 
-(defn cell [board cell-accessor step]
-  (let [pebble (cell-accessor board)]
+(defn cell [board quadrant-accessor cell-accessor step]
+  (let [pebble (cell-accessor (quadrant-accessor board))]
     [:div {:class    (str "cell")
            :on-click #(if (and (= :place step)
                                (= :blank pebble))
-                        (game-place-pebble cell-accessor)
+                        (game-place-pebble quadrant-accessor cell-accessor)
                         nil)}
      [:span (cond (= :white pebble) "w"
                   (= :black pebble) "b"
                   :else "-")]]))
 
-(defn grid [board step]
-  [:div {:class "grid"}
-   [cell board :c00 step]
-   [cell board :c10 step]
-   [cell board :c01 step]
-   [cell board :c11 step]])
-
-(defn rotate [label direction step]
+(defn rotate [quadrant-accessor label direction step]
   [:input {:type     "button" :value label
            :on-click #(if (= :rotate step)
-                        (game-rotate direction)
+                        (game-rotate quadrant-accessor direction)
                         nil)}])
+
+(defn board-quadrant [board quadrant-accessor step]
+  [:div {:class "grid"}
+   [rotate quadrant-accessor "<" :left step]
+   [rotate quadrant-accessor ">" :right step]
+   [cell board quadrant-accessor :c00 step]
+   [cell board quadrant-accessor :c10 step]
+   [cell board quadrant-accessor :c01 step]
+   [cell board quadrant-accessor :c11 step]])
+
+(defn board-whole [board step]
+  [:div
+   [board-quadrant board :q00 step]
+   [board-quadrant board :q01 step]
+   [board-quadrant board :q10 step]
+   [board-quadrant board :q11 step]])
 
 (defn turn-label [player step]
   [:div
@@ -76,9 +96,7 @@
   (let [step (:step @game-state)]
     [:div
      [turn-label (:player @game-state) step]
-     [grid (:board @game-state) step]
-     [rotate "<" :left step]
-     [rotate ">" :right step]
+     [board-whole (:board @game-state) step]
      [data-debug]]))
 
 (defn ^:export run []
