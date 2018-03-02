@@ -44,36 +44,42 @@
   [:div
    (d/prn @game-state)])
 
-(defn cell [board cell-accessor]
-  [:div {:class    (str "cell")
-         :on-click #(game-place-pebble cell-accessor)}
-   [:span (let [pebble (cell-accessor board)]
-            (cond (= :white pebble) "w"
+(defn cell [board cell-accessor step]
+  (let [pebble (cell-accessor board)]
+    [:div {:class    (str "cell")
+           :on-click #(if (and (= :place step)
+                               (= :blank pebble))
+                        (game-place-pebble cell-accessor)
+                        nil)}
+     [:span (cond (= :white pebble) "w"
                   (= :black pebble) "b"
-                  :else "-"))]])
+                  :else "-")]]))
 
-(defn grid [board]
+(defn grid [board step]
   [:div {:class "grid"}
-   [cell board :c00]
-   [cell board :c10]
-   [cell board :c01]
-   [cell board :c11]])
+   [cell board :c00 step]
+   [cell board :c10 step]
+   [cell board :c01 step]
+   [cell board :c11 step]])
 
-(defn rotate [label direction]
+(defn rotate [label direction step]
   [:input {:type     "button" :value label
-           :on-click #(game-rotate direction)}])
+           :on-click #(if (= :rotate step)
+                        (game-rotate direction)
+                        nil)}])
 
 (defn turn-label [player step]
   [:div
    "Turn: " player " " step])
 
 (defn simple-example []
-  [:div
-   [turn-label (:player @game-state) (:step @game-state)]
-   [grid (:board @game-state)]
-   [rotate "<" :left]
-   [rotate ">" :right]
-   [data-debug]])
+  (let [step (:step @game-state)]
+    [:div
+     [turn-label (:player @game-state) step]
+     [grid (:board @game-state) step]
+     [rotate "<" :left step]
+     [rotate ">" :right step]
+     [data-debug]]))
 
 (defn ^:export run []
   (r/render [simple-example]
