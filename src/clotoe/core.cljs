@@ -1,17 +1,37 @@
 (ns clotoe.core
-  (:require [reagent.core :as r]))
+  (:require [reagent.core :as r]
+            [reagent.debug :as d]))
 
-(def grid-data (r/atom (array-map :c00 false :c10 false
-                                  :c01 false :c11 true)))
+(def turn (r/atom {:color :white
+                   :step  :place}))
+
+(def grid-data (r/atom (array-map :c00 :blank :c10 :blank
+                                  :c01 :blank :c11 :blank)))
+
+(defn data-debug []
+  [:div
+   (d/prn @turn)
+   (d/prn @grid-data)])
+
+(defn next-step [current]
+  (if (= :place (:step current))
+    (assoc current :step :rotate)
+    (assoc current :color (if (= :white (:color current)) :black :white)
+                   :step :place)))
 
 (defn set-pebble [cell-data]
   (fn [data]
-    (assoc data cell-data true)))
+    (let [curr-turn @turn]
+      (assoc data cell-data (:color curr-turn)))))
 
 (defn cell [data cell-data]
-  [:div {:class (str "cell")
-         :on-click #(swap! data (set-pebble cell-data))}
-   [:span (if (cell-data @data) "x" "o")]])
+  [:div {:class    (str "cell")
+         :on-click #((swap! data (set-pebble cell-data))
+                      (swap! turn next-step))}
+   [:span (let [pebble (cell-data @data)]
+            (cond (= :white pebble) "w"
+                  (= :black pebble) "b"
+                  :else "-"))]])
 
 (defn grid [data]
   [:div {:class "grid"}
@@ -34,13 +54,21 @@
 
 (defn rotate [label rot]
   [:input {:type     "button" :value label
-           :on-click #(swap! grid-data rot)}])
+           :on-click #((swap! grid-data rot)
+                        (swap! turn next-step))}])
+
+(defn turn-label []
+  [:div
+   "Turn: "
+   @turn])
 
 (defn simple-example []
   [:div
+   [turn-label]
    [grid grid-data]
    [rotate "<" rot-left]
-   [rotate ">" rot-right]])
+   [rotate ">" rot-right]
+   [data-debug]])
 
 (defn ^:export run []
   (r/render [simple-example]
