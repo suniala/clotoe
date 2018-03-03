@@ -3,8 +3,9 @@
             [reagent.debug :as d]))
 
 (defn init-quadrant []
-  {:c00 :blank :c10 :blank
-   :c01 :blank :c11 :blank})
+  (let [cell-keys [:c00 :c10 :c01 :c11]
+        cell-values (repeat (count cell-keys) :blank)]
+    (zipmap cell-keys cell-values)))
 
 (def game-state (r/atom {:player :white
                          :step   :place
