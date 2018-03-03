@@ -72,31 +72,35 @@
                         nil)}
      [:div {:class (str "pebble" " " pebble-class)}]]))
 
-(defn rotate [quadrant-accessor label direction step]
-  [:input {:type     "button" :value label
-           :on-click #(if (= :rotate step)
-                        (game-rotate quadrant-accessor direction)
-                        nil)}])
+(defn rotate [quadrant-accessor direction step]
+  (let [img-name (if (= :right direction) "right.png" "left.png")
+        class (name direction)]
+    [:div {:class (str "rotate " class)}
+     [:img {:src      (str "img/" img-name)
+            :on-click #(if (= :rotate step)
+                         (game-rotate quadrant-accessor direction)
+                         nil)}]]))
 
 (defn board-quadrant [board quadrant-accessor step]
-  [:div {:class "quadrant"}
-   [rotate quadrant-accessor "<" :left step]
-   [rotate quadrant-accessor ">" :right step]
-   [cell board quadrant-accessor :c00 step]
-   [cell board quadrant-accessor :c10 step]
-   [cell board quadrant-accessor :c20 step]
-   [cell board quadrant-accessor :c01 step]
-   [cell board quadrant-accessor :c11 step]
-   [cell board quadrant-accessor :c21 step]
-   [cell board quadrant-accessor :c02 step]
-   [cell board quadrant-accessor :c12 step]
-   [cell board quadrant-accessor :c22 step]])
+  [:div {:class (str "quadrant-container " (name quadrant-accessor))}
+   [:div {:class (str "quadrant")}
+    [rotate quadrant-accessor :left step]
+    [rotate quadrant-accessor :right step]
+    [cell board quadrant-accessor :c00 step]
+    [cell board quadrant-accessor :c10 step]
+    [cell board quadrant-accessor :c20 step]
+    [cell board quadrant-accessor :c01 step]
+    [cell board quadrant-accessor :c11 step]
+    [cell board quadrant-accessor :c21 step]
+    [cell board quadrant-accessor :c02 step]
+    [cell board quadrant-accessor :c12 step]
+    [cell board quadrant-accessor :c22 step]]])
 
 (defn board-whole [board step]
   [:div {:class "board"}
    [board-quadrant board :q00 step]
-   [board-quadrant board :q01 step]
    [board-quadrant board :q10 step]
+   [board-quadrant board :q01 step]
    [board-quadrant board :q11 step]])
 
 (defn turn-label [player step]

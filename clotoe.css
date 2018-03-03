@@ -3,7 +3,7 @@ body {
 }
 
 .content {
-    width: 190px;
+    width: 280px;
     margin: 0 auto;
 }
 
@@ -17,15 +17,79 @@ body {
 }
 
 .board {
-    border: 1px solid gray;
     background-color: gray;
     padding: 10px;
 }
 
-.quadrant {
+.quadrant-container {
     display: inline-block;
+    width: 85px;
+    height: 85px;
+}
+
+.quadrant-container.q00 {
+    padding: 40px 0 0 40px;
+}
+
+.quadrant-container.q10 {
+    padding: 40px 40px 0 0;
+}
+
+.quadrant-container.q01 {
+    padding: 0 0 40px 40px;
+}
+
+.quadrant-container.q11 {
+    padding: 0 40px 40px 0;
+}
+
+.quadrant {
+    position: relative;
     width: 75px;
+    height: 75px;
     margin: 4px;
+}
+
+.rotate {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+}
+
+.q00 .rotate.left {
+    left: -40px;
+}
+
+.q00 .rotate.right {
+    top: -40px;
+}
+
+.q10 .rotate.left {
+    left: 35px;
+    top: -40px;
+}
+
+.q10 .rotate.right {
+    left: 75px;
+}
+
+.q01 .rotate.left {
+    top: 80px;
+}
+
+.q01 .rotate.right {
+    top: 40px;
+    left: -40px;
+}
+
+.q11 .rotate.left {
+    left: 40px;
+    top: 80px;
+}
+
+.q11 .rotate.right {
+    left: 75px;
+    top: 40px;
 }
 
 .cell {
