@@ -50,6 +50,10 @@ body {
     margin: 4px;
 }
 
+.hide-rotate .rotate {
+    display: none;
+}
+
 .rotate {
     position: absolute;
     width: 40px;

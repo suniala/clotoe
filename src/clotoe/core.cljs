@@ -97,11 +97,12 @@
     [cell board quadrant-accessor :c22 step]]])
 
 (defn board-whole [board step]
-  [:div {:class "board"}
-   [board-quadrant board :q00 step]
-   [board-quadrant board :q10 step]
-   [board-quadrant board :q01 step]
-   [board-quadrant board :q11 step]])
+  (let [hide-rotate-class (if (= :place step) "hide-rotate" "")]
+    [:div {:class (str "board " hide-rotate-class)}
+     [board-quadrant board :q00 step]
+     [board-quadrant board :q10 step]
+     [board-quadrant board :q01 step]
+     [board-quadrant board :q11 step]]))
 
 (defn turn-label [player step]
   (let [step-text (if (= :place step)
