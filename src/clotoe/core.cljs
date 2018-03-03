@@ -13,17 +13,22 @@
                                   :q01 (init-quadrant)
                                   :q11 (init-quadrant)}}))
 
-; c00 c10  ->  c01 c00
-; c01 c11      c11 c10
-(defn rot-right [data]
-  (array-map :c00 (:c01 data) :c10 (:c00 data)
-             :c01 (:c11 data) :c11 (:c10 data)))
+(def lookup-rot-right {:c00 :c01 :c10 :c00
+                       :c01 :c11 :c11 :c10})
 
-; c00 c10  ->  c10 c11
-; c01 c11      c00 c01
-(defn rot-left [data]
-  (array-map :c00 (:c10 data) :c10 (:c11 data)
-             :c01 (:c00 data) :c11 (:c01 data)))
+(def lookup-rot-left
+  (apply hash-map (flatten (map (fn [k] [(k lookup-rot-right) k]) (keys lookup-rot-right)))))
+
+(defn trans-quadrant-rot [quadrant lookup]
+  (let [xs-pairs (map (fn [k] [k (k lookup)]) (keys lookup))
+        pairs (map (fn [[k xs]] [k (xs quadrant)]) xs-pairs)]
+    (apply hash-map (flatten pairs))))
+
+(defn trans-quadrant-rot-right [quadrant]
+  (trans-quadrant-rot quadrant lookup-rot-right))
+
+(defn trans-quadrant-rot-left [quadrant]
+  (trans-quadrant-rot quadrant lookup-rot-left))
 
 (defn trans-place-pebble [quadrant-accessor cell-accessor]
   (fn [game-state]
@@ -38,8 +43,8 @@
     (let [next-player (if (= :white (:player game-state)) :black :white)
           quadrant (quadrant-accessor (:board game-state))
           next-quadrant (if (= :left direction)
-                       (rot-left quadrant)
-                       (rot-right quadrant))
+                          (trans-quadrant-rot-left quadrant)
+                          (trans-quadrant-rot-right quadrant))
           next-board (assoc (:board game-state) quadrant-accessor next-quadrant)]
       (assoc game-state :player next-player
                         :step :place
