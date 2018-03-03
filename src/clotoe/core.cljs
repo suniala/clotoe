@@ -60,20 +60,17 @@
 (defn game-rotate [quadrant-accessor direction]
   (swap! game-state (trans-rotate quadrant-accessor direction)))
 
-(defn data-debug []
-  [:div
-   (d/prn @game-state)])
-
 (defn cell [board quadrant-accessor cell-accessor step]
-  (let [pebble (cell-accessor (quadrant-accessor board))]
+  (let [pebble (cell-accessor (quadrant-accessor board))
+        pebble-class (cond (= :white pebble) "white"
+                           (= :black pebble) "black"
+                           :else "blank")]
     [:div {:class    (str "cell")
            :on-click #(if (and (= :place step)
                                (= :blank pebble))
                         (game-place-pebble quadrant-accessor cell-accessor)
                         nil)}
-     [:span (cond (= :white pebble) "w"
-                  (= :black pebble) "b"
-                  :else "-")]]))
+     [:div {:class (str "pebble" " " pebble-class)}]]))
 
 (defn rotate [quadrant-accessor label direction step]
   [:input {:type     "button" :value label
@@ -82,7 +79,7 @@
                         nil)}])
 
 (defn board-quadrant [board quadrant-accessor step]
-  [:div {:class "grid"}
+  [:div {:class "quadrant"}
    [rotate quadrant-accessor "<" :left step]
    [rotate quadrant-accessor ">" :right step]
    [cell board quadrant-accessor :c00 step]
@@ -96,22 +93,27 @@
    [cell board quadrant-accessor :c22 step]])
 
 (defn board-whole [board step]
-  [:div
+  [:div {:class "board"}
    [board-quadrant board :q00 step]
    [board-quadrant board :q01 step]
    [board-quadrant board :q10 step]
    [board-quadrant board :q11 step]])
 
 (defn turn-label [player step]
-  [:div
-   "Turn: " player " " step])
+  (let [step-text (if (= :place step)
+                    "Place a pebble"
+                    "Rotate a quadrant")]
+    [:div {:class "turn"}
+     [:span {:class "player"}
+      "Player: " player]
+     [:span {:class "step"}
+      step-text]]))
 
 (defn simple-example []
   (let [step (:step @game-state)]
-    [:div
+    [:div {:class "content"}
      [turn-label (:player @game-state) step]
-     [board-whole (:board @game-state) step]
-     [data-debug]]))
+     [board-whole (:board @game-state) step]]))
 
 (defn ^:export run []
   (r/render [simple-example]

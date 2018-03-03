@@ -1,18 +1,53 @@
-.grid {
-    border: 1px solid gray;
-    width: 75px;
+body {
+    background-color: black;
+}
+
+.content {
+    width: 190px;
+    margin: 0 auto;
+}
+
+.turn {
+    background-color: royalblue;
     padding: 4px;
 }
 
+.turn span {
+    display: block;
+}
+
+.board {
+    border: 1px solid gray;
+    background-color: gray;
+    padding: 10px;
+}
+
+.quadrant {
+    display: inline-block;
+    width: 75px;
+    margin: 4px;
+}
+
 .cell {
-    border: 1px solid blue;
+    border: 1px solid black;
     display: inline-block;
     width: 20px;
     height: 20px;
     margin: 1px;
-    text-align: center;
+    border-radius: 10px;
 }
 
 .pebble {
-    color: black;
+    width: 16px;
+    height: 16px;
+    margin: 2px;
+    border-radius: 8px;
+}
+
+.white {
+    background-color: white;
+}
+
+.black {
+    background-color: black;
 }
