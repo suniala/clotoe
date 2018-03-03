@@ -3,7 +3,9 @@
             [reagent.debug :as d]))
 
 (defn init-quadrant []
-  (let [cell-keys [:c00 :c10 :c01 :c11]
+  (let [cell-keys [:c00 :c10 :c20
+                   :c01 :c11 :c21
+                   :c02 :c12 :c22]
         cell-values (repeat (count cell-keys) :blank)]
     (zipmap cell-keys cell-values)))
 
@@ -14,8 +16,9 @@
                                   :q01 (init-quadrant)
                                   :q11 (init-quadrant)}}))
 
-(def lookup-rot-right {:c00 :c01 :c10 :c00
-                       :c01 :c11 :c11 :c10})
+(def lookup-rot-right {:c00 :c02, :c10 :c01, :c20 :c00
+                       :c01 :c12, :c11 :c11, :c21 :c10
+                       :c02 :c22, :c12 :c21, :c22 :c20})
 
 (def lookup-rot-left
   (apply hash-map (flatten (map (fn [k] [(k lookup-rot-right) k]) (keys lookup-rot-right)))))
@@ -84,8 +87,13 @@
    [rotate quadrant-accessor ">" :right step]
    [cell board quadrant-accessor :c00 step]
    [cell board quadrant-accessor :c10 step]
+   [cell board quadrant-accessor :c20 step]
    [cell board quadrant-accessor :c01 step]
-   [cell board quadrant-accessor :c11 step]])
+   [cell board quadrant-accessor :c11 step]
+   [cell board quadrant-accessor :c21 step]
+   [cell board quadrant-accessor :c02 step]
+   [cell board quadrant-accessor :c12 step]
+   [cell board quadrant-accessor :c22 step]])
 
 (defn board-whole [board step]
   [:div
