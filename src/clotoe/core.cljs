@@ -2,6 +2,8 @@
   (:require [reagent.core :as r]
             [reagent.debug :as d]))
 
+(def min-straight 5)
+
 (defn init-quadrant []
   (let [cell-keys [:c00 :c10 :c20
                    :c01 :c11 :c21
@@ -15,6 +17,62 @@
                                   :q10 (init-quadrant)
                                   :q01 (init-quadrant)
                                   :q11 (init-quadrant)}}))
+
+; TODO: seriously, this is awkward, how about creating this programmatically?
+(def coord-to-cell-xs [[[:q00 :c00] [:q00 :c10] [:q00 :c20] [:q10 :c00] [:q10 :c10] [:q10 :c20]]
+                       [[:q00 :c01] [:q00 :c11] [:q00 :c21] [:q10 :c01] [:q10 :c11] [:q10 :c21]]
+                       [[:q00 :c02] [:q00 :c12] [:q00 :c22] [:q10 :c02] [:q10 :c12] [:q10 :c22]]
+                       [[:q01 :c00] [:q01 :c10] [:q01 :c20] [:q11 :c00] [:q11 :c10] [:q11 :c20]]
+                       [[:q01 :c01] [:q01 :c11] [:q01 :c21] [:q11 :c01] [:q11 :c11] [:q11 :c21]]
+                       [[:q01 :c02] [:q01 :c12] [:q01 :c22] [:q11 :c02] [:q11 :c12] [:q11 :c22]]])
+
+; Note that we only need "half" of possibilities here as directions (along the straight) does not matter.
+(def straight-iterators
+  (let [make-iter
+        (fn [iter-col iter-row]
+          (fn win-iter
+            ([col row]
+             (win-iter min-straight col row))
+            ([rem col row]
+             (if (or (= 0 rem)
+                     (< col 0)
+                     (> col 5)
+                     (< row 0)
+                     (> row 5))
+               nil
+               (cons [col row] (win-iter (dec rem) (iter-col col) (iter-row row)))))))
+        no-op (fn [arg] arg)]
+    [(make-iter inc no-op)                                  ; right
+     (make-iter inc inc)                                    ; down-right
+     (make-iter no-op inc)                                  ; down
+     (make-iter dec inc)                                    ; down-left
+     ]))
+
+(defn find-player-cells [player]
+  (let [player-cell-or-nil
+        (fn [player col row]
+          (let [[lookup-q lookup-c] (get (get coord-to-cell-xs row) col)
+                pebble (lookup-c (lookup-q (:board @game-state)))]
+            (if (= player pebble) [col row] nil)))
+        nested-ranges (map (fn [a] (map (fn [b] [a b]) (range 0 6))) (range 0 6))
+        flattened-ranges (apply concat nested-ranges)
+        nillified-cells (map (fn [[col row]] (player-cell-or-nil player col row)) flattened-ranges)
+        player-cells (filter (complement nil?) nillified-cells)]
+    player-cells))
+
+; Note that this could be optimized further but seems to be fast enough in practice.
+(defn win? [player]
+  (let [player-cells (set (find-player-cells player))
+        possible-straights (apply concat (map
+                                           (fn [straight-it] (map
+                                                          (fn [[col row]] (straight-it col row))
+                                                          player-cells))
+                                           straight-iterators))
+        long-enough-straights (filter #(>= (count %) min-straight) possible-straights)
+        player-has-cell? (fn [cell] (contains? player-cells cell))
+        player-has-straight? (fn [straight] (every? player-has-cell? straight))
+        matching-straights (filter player-has-straight? long-enough-straights)]
+    (not (empty? matching-straights))))
 
 (def lookup-rot-right {:c00 :c02, :c10 :c01, :c20 :c00
                        :c01 :c12, :c11 :c11, :c21 :c10
@@ -54,11 +112,22 @@
                         :step :place
                         :board next-board))))
 
+(defn trans-win [player]
+  (fn [game-state]
+    (assoc game-state :step :end
+                      :winner player)))
+
 (defn game-place-pebble [quadrant-accessor cell-accessor]
   (swap! game-state (trans-place-pebble quadrant-accessor cell-accessor)))
 
 (defn game-rotate [quadrant-accessor direction]
-  (swap! game-state (trans-rotate quadrant-accessor direction)))
+  (swap! game-state (trans-rotate quadrant-accessor direction))
+  (let [winner (cond (win? :white) :white
+                     (win? :black) :black
+                     :else nil)]
+    (if winner
+      (swap! game-state (trans-win winner))
+      nil)))
 
 (defn cell [board quadrant-accessor cell-accessor step]
   (let [pebble (cell-accessor (quadrant-accessor board))
@@ -97,27 +166,33 @@
     [cell board quadrant-accessor :c22 step]]])
 
 (defn board-whole [board step]
-  (let [hide-rotate-class (if (= :place step) "hide-rotate" "")]
+  (let [hide-rotate-class (if (not (= :rotate step)) "hide-rotate" "")]
     [:div {:class (str "board " hide-rotate-class)}
      [board-quadrant board :q00 step]
      [board-quadrant board :q10 step]
      [board-quadrant board :q01 step]
      [board-quadrant board :q11 step]]))
 
-(defn turn-label [player step]
+(defn turn-label [player step winner]
   (let [step-text (if (= :place step)
                     "Place a pebble"
-                    "Rotate a quadrant")]
+                    "Rotate a quadrant")
+        end-text (if (not (nil? winner)) (str (name winner) " won!") "it is a tie.")]
     [:div {:class "turn"}
-     [:span {:class "player"}
-      "Player: " player]
-     [:span {:class "step"}
-      step-text]]))
+     (if (= :end step)
+       [:div
+        [:span (str "Game ended, " end-text)]]
+       [:div
+        [:span {:class "player"}
+         "Player: " player]
+        [:span {:class "step"}
+         step-text]])
+     ]))
 
 (defn simple-example []
   (let [step (:step @game-state)]
     [:div {:class "content"}
-     [turn-label (:player @game-state) step]
+     [turn-label (:player @game-state) step (:winner @game-state)]
      [board-whole (:board @game-state) step]]))
 
 (defn ^:export run []
