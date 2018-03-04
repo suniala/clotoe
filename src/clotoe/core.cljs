@@ -2,11 +2,15 @@
   (:require [reagent.core :as r]
             [reagent.debug :as d]))
 
+(def cell-keys [:c00 :c10 :c20
+                :c01 :c11 :c21
+                :c02 :c12 :c22])
+
+(def quadrant-keys [:q00 :q10
+                    :q01 :q11])
+
 (defn init-quadrant []
-  (let [cell-keys [:c00 :c10 :c20
-                   :c01 :c11 :c21
-                   :c02 :c12 :c22]
-        cell-values (repeat (count cell-keys) :blank)]
+  (let [cell-values (repeat (count cell-keys) :blank)]
     (zipmap cell-keys cell-values)))
 
 (def game-state (r/atom {:player       :white
@@ -177,23 +181,12 @@
    [:div {:class (str "quadrant")}
     [rotate quadrant-accessor :left step]
     [rotate quadrant-accessor :right step]
-    [cell board quadrant-accessor :c00 step]
-    [cell board quadrant-accessor :c10 step]
-    [cell board quadrant-accessor :c20 step]
-    [cell board quadrant-accessor :c01 step]
-    [cell board quadrant-accessor :c11 step]
-    [cell board quadrant-accessor :c21 step]
-    [cell board quadrant-accessor :c02 step]
-    [cell board quadrant-accessor :c12 step]
-    [cell board quadrant-accessor :c22 step]]])
+    (map (fn [cell-accessor] [cell board quadrant-accessor cell-accessor step]) cell-keys)]])
 
 (defn board-whole [board step]
   (let [hide-rotate-class (if (not (= :rotate step)) "hide-rotate" "")]
     [:div {:class (str "board " hide-rotate-class)}
-     [board-quadrant board :q00 step]
-     [board-quadrant board :q10 step]
-     [board-quadrant board :q01 step]
-     [board-quadrant board :q11 step]]))
+     (map (fn [quadrant-accessor] [board-quadrant board quadrant-accessor step]) quadrant-keys)]))
 
 (defn turn-label [player step winner]
   (let [step-text (if (= :place step)
