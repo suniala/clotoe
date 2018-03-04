@@ -12,7 +12,7 @@
     (zipmap cell-keys cell-values)))
 
 (def game-state (r/atom {:player :white
-                         :step   :place
+                         :step   :intro
                          :board  {:q00 (init-quadrant)
                                   :q10 (init-quadrant)
                                   :q01 (init-quadrant)
@@ -128,6 +128,13 @@
     (assoc game-state :step :end
                       :winner nil)))
 
+(defn trans-start-game []
+  (fn [game-state]
+    (assoc game-state :step :place)))
+
+(defn game-start []
+  (swap! game-state (trans-start-game)))
+
 (defn game-place-pebble [quadrant-accessor cell-accessor]
   (swap! game-state (trans-place-pebble quadrant-accessor cell-accessor)))
 
@@ -203,10 +210,26 @@
      ]))
 
 (defn clotoe []
-  (let [step (:step @game-state)]
+  (let [step (:step @game-state)
+        start-button (fn []
+                       [:input {:type     "button" :value "Start game"
+                                :on-click #(game-start)}])]
     [:div {:class "content"}
-     [turn-label (:player @game-state) step (:winner @game-state)]
-     [board-whole (:board @game-state) step]]))
+     (if (= :intro step)
+       [:div {:class "intro"}
+        [:h1 "Clo-Toe"]
+        [:a {:href "https://github.com/suniala/clotoe"}
+         [:img {:style {:position "absolute", :top 0, :right 0, :border 0}
+                :src   "https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png"
+                :alt   "Fork me on GitHub"}]]
+        [:p "This is a tic-tac-toe like game with a twist: after each turn, you must rotate one of the board
+        quadrants 90 degrees. First player to get 5 in a row wins."]
+        [:p "Now would be a good time to call a friend as this is a two player game!"]
+        [start-button]]
+       [:div
+        [turn-label (:player @game-state) step (:winner @game-state)]
+        [board-whole (:board @game-state) step]]
+       )]))
 
 (defn ^:export run []
   (r/render [clotoe]
