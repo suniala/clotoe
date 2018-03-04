@@ -202,12 +202,12 @@
          step-text]])
      ]))
 
-(defn simple-example []
+(defn clotoe []
   (let [step (:step @game-state)]
     [:div {:class "content"}
      [turn-label (:player @game-state) step (:winner @game-state)]
      [board-whole (:board @game-state) step]]))
 
 (defn ^:export run []
-  (r/render [simple-example]
+  (r/render [clotoe]
             (js/document.getElementById "app")))
