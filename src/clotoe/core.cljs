@@ -218,7 +218,7 @@
                 :src   "https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png"
                 :alt   "Fork me on GitHub"}]]
         [:p "This is a tic-tac-toe like game with a twist: after each turn, you must rotate one of the board
-        quadrants 90 degrees. First player to get 5 in a row wins."]
+        quadrants 90 degrees. First player to get enough pebbles in a row wins."]
         [:p "Now would be a good time to call a friend as this is a two player game!"]
         [start-button 3]
         [start-button 4]
