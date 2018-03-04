@@ -20,13 +20,17 @@
                                         :q01 (init-quadrant)
                                         :q11 (init-quadrant)}}))
 
-; TODO: seriously, this is awkward, how about creating this programmatically?
-(def coord-to-cell-xs [[[:q00 :c00] [:q00 :c10] [:q00 :c20] [:q10 :c00] [:q10 :c10] [:q10 :c20]]
-                       [[:q00 :c01] [:q00 :c11] [:q00 :c21] [:q10 :c01] [:q10 :c11] [:q10 :c21]]
-                       [[:q00 :c02] [:q00 :c12] [:q00 :c22] [:q10 :c02] [:q10 :c12] [:q10 :c22]]
-                       [[:q01 :c00] [:q01 :c10] [:q01 :c20] [:q11 :c00] [:q11 :c10] [:q11 :c20]]
-                       [[:q01 :c01] [:q01 :c11] [:q01 :c21] [:q11 :c01] [:q11 :c11] [:q11 :c21]]
-                       [[:q01 :c02] [:q01 :c12] [:q01 :c22] [:q11 :c02] [:q11 :c12] [:q11 :c22]]])
+(defn pebble-at-coord [board col row]
+  (let [cell-xs-kw (fn [c r] (keyword (str \c c r)))
+        [q-xs c-xs] (if (< col 3)
+                      (if (< row 3)
+                        [:q00 (cell-xs-kw col row)]
+                        [:q01 (cell-xs-kw col (- row 3))]
+                        )
+                      (if (< row 3)
+                        [:q10 (cell-xs-kw (- col 3) row)]
+                        [:q11 (cell-xs-kw (- col 3) (- row 3))]))]
+    (c-xs (q-xs board))))
 
 ; Note that we only need "half" of possibilities here as directions (along the straight) does not matter.
 (defn straight-iterators [min-straight]
@@ -53,8 +57,7 @@
 (defn find-player-cells [player]
   (let [player-cell-or-nil
         (fn [player col row]
-          (let [[lookup-q lookup-c] (get (get coord-to-cell-xs row) col)
-                pebble (lookup-c (lookup-q (:board @game-state)))]
+          (let [pebble (pebble-at-coord (:board @game-state) col row)]
             (if (= player pebble) [col row] nil)))
         nested-ranges (map (fn [a] (map (fn [b] [a b]) (range 0 6))) (range 0 6))
         flattened-ranges (apply concat nested-ranges)
