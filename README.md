@@ -1,6 +1,8 @@
-# A Twisted Game of Tic-Tac-Toe
+# Clo-Toe - A Twisted Game of Tic-Tac-Toe
 
-Practising Clojure and Reagent.
+See the game live at [kosmik.kapsi.fi/clotoe](http://kosmik.kapsi.fi/clotoe/).
+
+This a personal project for practising Clojure and Reagent.
 
 ## Build
 
