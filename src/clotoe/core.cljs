@@ -2,8 +2,6 @@
   (:require [reagent.core :as r]
             [reagent.debug :as d]))
 
-(def min-straight 5)
-
 (defn init-quadrant []
   (let [cell-keys [:c00 :c10 :c20
                    :c01 :c11 :c21
@@ -11,12 +9,13 @@
         cell-values (repeat (count cell-keys) :blank)]
     (zipmap cell-keys cell-values)))
 
-(def game-state (r/atom {:player :white
-                         :step   :intro
-                         :board  {:q00 (init-quadrant)
-                                  :q10 (init-quadrant)
-                                  :q01 (init-quadrant)
-                                  :q11 (init-quadrant)}}))
+(def game-state (r/atom {:player       :white
+                         :step         :intro
+                         :min-straight 2
+                         :board        {:q00 (init-quadrant)
+                                        :q10 (init-quadrant)
+                                        :q01 (init-quadrant)
+                                        :q11 (init-quadrant)}}))
 
 ; TODO: seriously, this is awkward, how about creating this programmatically?
 (def coord-to-cell-xs [[[:q00 :c00] [:q00 :c10] [:q00 :c20] [:q10 :c00] [:q10 :c10] [:q10 :c20]]
@@ -27,7 +26,7 @@
                        [[:q01 :c02] [:q01 :c12] [:q01 :c22] [:q11 :c02] [:q11 :c12] [:q11 :c22]]])
 
 ; Note that we only need "half" of possibilities here as directions (along the straight) does not matter.
-(def straight-iterators
+(defn straight-iterators [min-straight]
   (let [make-iter
         (fn [iter-col iter-row]
           (fn win-iter
@@ -61,13 +60,14 @@
     player-cells))
 
 ; Note that this could be optimized further but seems to be fast enough in practice.
-(defn win? [player]
+(defn win? [player min-straight]
   (let [player-cells (set (find-player-cells player))
+        straight-its (straight-iterators min-straight)
         possible-straights (apply concat (map
                                            (fn [straight-it] (map
                                                                (fn [[col row]] (straight-it col row))
                                                                player-cells))
-                                           straight-iterators))
+                                           straight-its))
         long-enough-straights (filter #(>= (count %) min-straight) possible-straights)
         player-has-cell? (fn [cell] (contains? player-cells cell))
         player-has-straight? (fn [straight] (every? player-has-cell? straight))
@@ -128,20 +128,22 @@
     (assoc game-state :step :end
                       :winner nil)))
 
-(defn trans-start-game []
+(defn trans-start-game [min-straight]
   (fn [game-state]
-    (assoc game-state :step :place)))
+    (assoc game-state :step :place
+                      :min-straight min-straight)))
 
-(defn game-start []
-  (swap! game-state (trans-start-game)))
+(defn game-start [min-straight]
+  (swap! game-state (trans-start-game min-straight)))
 
 (defn game-place-pebble [quadrant-accessor cell-accessor]
   (swap! game-state (trans-place-pebble quadrant-accessor cell-accessor)))
 
 (defn game-rotate [quadrant-accessor direction]
   (swap! game-state (trans-rotate quadrant-accessor direction))
-  (let [winner (cond (win? :white) :white
-                     (win? :black) :black
+  (let [min-straight (:min-straight @game-state)
+        winner (cond (win? :white min-straight) :white
+                     (win? :black min-straight) :black
                      :else nil)]
     (if winner
       (swap! game-state (trans-win winner))
@@ -211,9 +213,9 @@
 
 (defn clotoe []
   (let [step (:step @game-state)
-        start-button (fn []
-                       [:input {:type     "button" :value "Start game"
-                                :on-click #(game-start)}])]
+        start-button (fn [min-straight]
+                       [:input {:type     "button" :value (str "Start a game of " min-straight " in a row")
+                                :on-click #(game-start min-straight)}])]
     [:div {:class "content"}
      (if (= :intro step)
        [:div {:class "intro"}
@@ -225,7 +227,9 @@
         [:p "This is a tic-tac-toe like game with a twist: after each turn, you must rotate one of the board
         quadrants 90 degrees. First player to get 5 in a row wins."]
         [:p "Now would be a good time to call a friend as this is a two player game!"]
-        [start-button]]
+        [start-button 3]
+        [start-button 4]
+        [start-button 5]]
        [:div
         [turn-label (:player @game-state) step (:winner @game-state)]
         [board-whole (:board @game-state) step]]
