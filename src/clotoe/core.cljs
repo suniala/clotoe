@@ -1,6 +1,5 @@
 (ns clotoe.core
-  (:require [reagent.core :as r]
-            [reagent.debug :as d]))
+  (:require [reagent.core :as r]))
 
 (def cell-xss [:c00 :c10 :c20
                :c01 :c11 :c21
