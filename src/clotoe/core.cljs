@@ -65,14 +65,20 @@
   (let [player-cells (set (find-player-cells player))
         possible-straights (apply concat (map
                                            (fn [straight-it] (map
-                                                          (fn [[col row]] (straight-it col row))
-                                                          player-cells))
+                                                               (fn [[col row]] (straight-it col row))
+                                                               player-cells))
                                            straight-iterators))
         long-enough-straights (filter #(>= (count %) min-straight) possible-straights)
         player-has-cell? (fn [cell] (contains? player-cells cell))
         player-has-straight? (fn [straight] (every? player-has-cell? straight))
         matching-straights (filter player-has-straight? long-enough-straights)]
     (not (empty? matching-straights))))
+
+(defn board-full? []
+  (let [quadrant-keys (keys (:board @game-state))
+        q-has-blanks? (fn [q-key] (some #(= % :blank) (vals (q-key (:board @game-state)))))
+        qs-with-blanks (filter q-has-blanks? quadrant-keys)]
+    (empty? qs-with-blanks)))
 
 (def lookup-rot-right {:c00 :c02, :c10 :c01, :c20 :c00
                        :c01 :c12, :c11 :c11, :c21 :c10
@@ -117,6 +123,11 @@
     (assoc game-state :step :end
                       :winner player)))
 
+(defn trans-tie []
+  (fn [game-state]
+    (assoc game-state :step :end
+                      :winner nil)))
+
 (defn game-place-pebble [quadrant-accessor cell-accessor]
   (swap! game-state (trans-place-pebble quadrant-accessor cell-accessor)))
 
@@ -127,7 +138,9 @@
                      :else nil)]
     (if winner
       (swap! game-state (trans-win winner))
-      nil)))
+      (if (board-full?)
+        (swap! game-state (trans-tie))
+        nil))))
 
 (defn cell [board quadrant-accessor cell-accessor step]
   (let [pebble (cell-accessor (quadrant-accessor board))
