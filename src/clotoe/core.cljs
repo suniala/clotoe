@@ -2,16 +2,16 @@
   (:require [reagent.core :as r]
             [reagent.debug :as d]))
 
-(def cell-keys [:c00 :c10 :c20
-                :c01 :c11 :c21
-                :c02 :c12 :c22])
+(def cell-xss [:c00 :c10 :c20
+               :c01 :c11 :c21
+               :c02 :c12 :c22])
 
-(def quadrant-keys [:q00 :q10
-                    :q01 :q11])
+(def quadrant-xss [:q00 :q10
+                   :q01 :q11])
 
 (defn init-quadrant []
-  (let [cell-values (repeat (count cell-keys) :blank)]
-    (zipmap cell-keys cell-values)))
+  (let [cell-values (repeat (count cell-xss) :blank)]
+    (zipmap cell-xss cell-values)))
 
 (def game-state (r/atom {:player       :white
                          :step         :intro
@@ -102,22 +102,22 @@
 (defn trans-quadrant-rot-left [quadrant]
   (trans-quadrant-rot quadrant lookup-rot-left))
 
-(defn trans-place-pebble [quadrant-accessor cell-accessor]
+(defn trans-place-pebble [quadrant-xs cell-xs]
   (fn [game-state]
-    (let [quadrant (quadrant-accessor (:board game-state))
-          next-quadrant (assoc quadrant cell-accessor (:player game-state))
-          next-board (assoc (:board game-state) quadrant-accessor next-quadrant)]
+    (let [quadrant (quadrant-xs (:board game-state))
+          next-quadrant (assoc quadrant cell-xs (:player game-state))
+          next-board (assoc (:board game-state) quadrant-xs next-quadrant)]
       (assoc game-state :step :rotate
                         :board next-board))))
 
-(defn trans-rotate [quadrant-accessor direction]
+(defn trans-rotate [quadrant-xs direction]
   (fn [game-state]
     (let [next-player (if (= :white (:player game-state)) :black :white)
-          quadrant (quadrant-accessor (:board game-state))
+          quadrant (quadrant-xs (:board game-state))
           next-quadrant (if (= :left direction)
                           (trans-quadrant-rot-left quadrant)
                           (trans-quadrant-rot-right quadrant))
-          next-board (assoc (:board game-state) quadrant-accessor next-quadrant)]
+          next-board (assoc (:board game-state) quadrant-xs next-quadrant)]
       (assoc game-state :player next-player
                         :step :place
                         :board next-board))))
@@ -140,11 +140,11 @@
 (defn game-start [min-straight]
   (swap! game-state (trans-start-game min-straight)))
 
-(defn game-place-pebble [quadrant-accessor cell-accessor]
-  (swap! game-state (trans-place-pebble quadrant-accessor cell-accessor)))
+(defn game-place-pebble [quadrant-xs cell-xs]
+  (swap! game-state (trans-place-pebble quadrant-xs cell-xs)))
 
-(defn game-rotate [quadrant-accessor direction]
-  (swap! game-state (trans-rotate quadrant-accessor direction))
+(defn game-rotate [quadrant-xs direction]
+  (swap! game-state (trans-rotate quadrant-xs direction))
   (let [min-straight (:min-straight @game-state)
         winner (cond (win? :white min-straight) :white
                      (win? :black min-straight) :black
@@ -155,38 +155,38 @@
         (swap! game-state (trans-tie))
         nil))))
 
-(defn cell [board quadrant-accessor cell-accessor step]
-  (let [pebble (cell-accessor (quadrant-accessor board))
+(defn cell [board quadrant-xs cell-xs step]
+  (let [pebble (cell-xs (quadrant-xs board))
         pebble-class (cond (= :white pebble) "white"
                            (= :black pebble) "black"
                            :else "blank")]
     [:div {:class    (str "cell")
            :on-click #(if (and (= :place step)
                                (= :blank pebble))
-                        (game-place-pebble quadrant-accessor cell-accessor)
+                        (game-place-pebble quadrant-xs cell-xs)
                         nil)}
      [:div {:class (str "pebble" " " pebble-class)}]]))
 
-(defn rotate [quadrant-accessor direction step]
+(defn rotate [quadrant-xs direction step]
   (let [img-name (if (= :right direction) "right.png" "left.png")
         class (name direction)]
     [:div {:class (str "rotate " class)}
      [:img {:src      (str "img/" img-name)
             :on-click #(if (= :rotate step)
-                         (game-rotate quadrant-accessor direction)
+                         (game-rotate quadrant-xs direction)
                          nil)}]]))
 
-(defn board-quadrant [board quadrant-accessor step]
-  [:div {:class (str "quadrant-container " (name quadrant-accessor))}
+(defn board-quadrant [board quadrant-xs step]
+  [:div {:class (str "quadrant-container " (name quadrant-xs))}
    [:div {:class (str "quadrant")}
-    [rotate quadrant-accessor :left step]
-    [rotate quadrant-accessor :right step]
-    (map (fn [cell-accessor] [cell board quadrant-accessor cell-accessor step]) cell-keys)]])
+    [rotate quadrant-xs :left step]
+    [rotate quadrant-xs :right step]
+    (map (fn [cell-xs] [cell board quadrant-xs cell-xs step]) cell-xss)]])
 
 (defn board-whole [board step]
   (let [hide-rotate-class (if (not (= :rotate step)) "hide-rotate" "")]
     [:div {:class (str "board " hide-rotate-class)}
-     (map (fn [quadrant-accessor] [board-quadrant board quadrant-accessor step]) quadrant-keys)]))
+     (map (fn [quadrant-xs] [board-quadrant board quadrant-xs step]) quadrant-xss)]))
 
 (defn turn-label [player step winner]
   (let [step-text (if (= :place step)
