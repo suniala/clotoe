@@ -183,12 +183,15 @@
    [:div {:class (str "quadrant")}
     [rotate quadrant-xs :left step]
     [rotate quadrant-xs :right step]
-    (map (fn [cell-xs] [cell board quadrant-xs cell-xs step]) cell-xss)]])
+    [:div
+     (for [cell-xs cell-xss]
+       ^{:key (name cell-xs)} [cell board quadrant-xs cell-xs step])]]])
 
 (defn board-whole [board step]
   (let [hide-rotate-class (if (not (= :rotate step)) "hide-rotate" "")]
     [:div {:class (str "board " hide-rotate-class)}
-     (map (fn [quadrant-xs] [board-quadrant board quadrant-xs step]) quadrant-xss)]))
+     (for [quadrant-xs quadrant-xss]
+       ^{:key (name quadrant-xs)} [board-quadrant board quadrant-xs step])]))
 
 (defn turn-label [player step winner]
   (let [step-text (if (= :place step)
